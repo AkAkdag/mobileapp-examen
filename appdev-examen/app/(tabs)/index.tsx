@@ -3,14 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
 export default function App() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<string | null>(null);
@@ -37,9 +35,9 @@ export default function App() {
   if (!cameraPermission.granted) {
     return (
       <View style={styles.container}>
-        <Text>We need your permission to show the camera</Text>
-        <TouchableOpacity onPress={requestCameraPermission}>
-          <Text>Grant Permission</Text>
+        <Text>Camera toestemming is vereist om door te gaan.</Text>
+        <TouchableOpacity style={styles.permissionButton} onPress={requestCameraPermission}>
+          <Text style={styles.permissionText}>Geef toestemming</Text>
         </TouchableOpacity>
       </View>
     );
@@ -51,7 +49,7 @@ export default function App() {
   const fetchLocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Location permission is required to fetch GPS data');
+      Alert.alert('Toestemming geweigerd', 'Locatietoestemming is vereist om GPS-gegevens op te halen.');
       return;
     }
     let loc = await Location.getCurrentPositionAsync({});
@@ -77,66 +75,69 @@ export default function App() {
       const metadataFilename = `${PHOTO_FOLDER}/metadata_${Date.now()}.json`;
       await FileSystem.writeAsStringAsync(metadataFilename, JSON.stringify(metadata));
 
-      Alert.alert('Saved Locally!', `Photo and metadata saved in ${PHOTO_FOLDER}`);
+      Alert.alert('Lokaal opgeslagen!', `Foto en metadata opgeslagen in ${PHOTO_FOLDER}`);
     } catch (error) {
-      console.error('Error saving photo and metadata:', error);
-      Alert.alert('Error', 'Failed to save the photo and metadata.');
+      console.error('Fout bij het opslaan van foto en metadata:', error);
+      Alert.alert('Fout', 'Kon de foto en metadata niet opslaan.');
     }
   };
 
   const generateAndSharePDF = async () => {
     try {
-      // Get the list of files in the photo folder
       const files = await FileSystem.readDirectoryAsync(PHOTO_FOLDER);
-      const photoFile = files.find((file) => file.startsWith('photo_') && file.endsWith('.jpg'));
-  
-      if (!photoFile) {
-        Alert.alert('No Photo Found', 'There are no photos saved to include in the PDF.');
+      const photoFiles = files.filter((file) => file.startsWith('photo_') && file.endsWith('.jpg'));
+
+      if (photoFiles.length === 0) {
+        Alert.alert('Geen foto gevonden', 'Er zijn geen foto’s opgeslagen om in de PDF op te nemen.');
         return;
       }
-  
-      // Get the full path of the photo
-      const photoPath = `${PHOTO_FOLDER}/${photoFile}`;
-  
-      // Convert photo to Base64
+
+      // Sort photo files by timestamp (extract timestamp from filename)
+      const sortedPhotoFiles = photoFiles.sort((a, b) => {
+        const timeA = parseInt(a.split('_')[1].split('.')[0]); // Extract timestamp from filename
+        const timeB = parseInt(b.split('_')[1].split('.')[0]); // Extract timestamp from filename
+        return timeB - timeA; // Sort descending (latest photo first)
+      });
+
+      const latestPhotoFile = sortedPhotoFiles[0];
+      const photoPath = `${PHOTO_FOLDER}/${latestPhotoFile}`;
+
+      // Convert the photo to Base64
       const base64Image = await FileSystem.readAsStringAsync(photoPath, { encoding: FileSystem.EncodingType.Base64 });
       const photoBase64URI = `data:image/jpeg;base64,${base64Image}`;
-  
-      // Generate PDF content with photo and metadata
+
+      // Generate the PDF content
       const html = `
         <html>
           <body>
-            <h1>Photo Metadata</h1>
-            <p><strong>Description:</strong> ${description || 'N/A'}</p>
-            <p><strong>Location:</strong> ${location || 'N/A'}</p>
-            <p><strong>Category:</strong> ${category || 'N/A'}</p>
-            <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
-            <h2>Photo:</h2>
+            <h1>Foto Metadata</h1>
+            <p><strong>Beschrijving:</strong> ${description || 'N.V.T.'}</p>
+            <p><strong>Locatie:</strong> ${location || 'N.V.T.'}</p>
+            <p><strong>Categorie:</strong> ${category || 'N.V.T.'}</p>
+            <p><strong>Tijdstip:</strong> ${new Date().toISOString()}</p>
+            <h2>Foto:</h2>
             <img src="${photoBase64URI}" style="width: 100%; max-width: 400px; height: auto;" />
           </body>
         </html>
       `;
-  
-      // Generate PDF
+
+      // Generate the PDF
       const { uri } = await Print.printToFileAsync({ html });
-      console.log('PDF generated:', uri);
-  
-      // Move PDF to a known location
       const pdfPath = `${PHOTO_FOLDER}/metadata_${Date.now()}.pdf`;
       await FileSystem.moveAsync({
         from: uri,
         to: pdfPath,
       });
-  
+
       // Share the PDF
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(pdfPath);
       } else {
-        Alert.alert('Sharing Not Available', 'Sharing is not available on this device.');
+        Alert.alert('Delen niet beschikbaar', 'Het delen van bestanden is niet beschikbaar op dit apparaat.');
       }
     } catch (error) {
-      console.error('Error generating or sharing PDF:', error);
-      Alert.alert('Error', 'Failed to generate or share the PDF.');
+      console.error('Fout bij het genereren of delen van PDF:', error);
+      Alert.alert('Fout', 'Kan de PDF niet genereren of delen.');
     }
   };
 
@@ -146,7 +147,7 @@ export default function App() {
         const photo = await cameraRef.current.takePictureAsync();
 
         if (!photo || !photo.uri) {
-          Alert.alert('Error', 'Failed to capture photo. Please try again.');
+          Alert.alert('Fout', 'Kon geen foto maken. Probeer het opnieuw.');
           return;
         }
 
@@ -154,7 +155,7 @@ export default function App() {
         closeCamera();
       } catch (error) {
         console.error(error);
-        Alert.alert('Error', 'Failed to take or save the photo.');
+        Alert.alert('Fout', 'Kon de foto niet maken of opslaan.');
       }
     }
   };
@@ -164,11 +165,11 @@ export default function App() {
       {!isCameraOpen ? (
         <View style={styles.layout}>
           <TouchableOpacity style={styles.cameraButton} onPress={openCamera}>
-            <Text style={styles.cameraButtonText}>Camera</Text>
+            <Text style={styles.cameraButtonText}>Camera openen</Text>
           </TouchableOpacity>
           <TextInput
             style={styles.input}
-            placeholder="Beschrijving Veld"
+            placeholder="Voer beschrijving in"
             value={description}
             onChangeText={setDescription}
           />
@@ -185,17 +186,17 @@ export default function App() {
             />
           </View>
           <TouchableOpacity style={styles.saveButton} onPress={generateAndSharePDF}>
-            <Text style={styles.buttonText}>Generate and Share PDF</Text>
+            <Text style={styles.buttonText}>PDF genereren en delen</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <CameraView style={styles.camera} type={facing} ref={cameraRef}>
           <View style={styles.cameraControls}>
             <TouchableOpacity style={styles.photoButton} onPress={takePic}>
-              <Text style={styles.buttonText}>Take Picture</Text>
+              <Text style={styles.buttonText}>Foto maken</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.closeButton} onPress={closeCamera}>
-              <Text style={styles.buttonText}>Close Camera</Text>
+              <Text style={styles.buttonText}>Camera sluiten</Text>
             </TouchableOpacity>
           </View>
         </CameraView>
@@ -209,6 +210,8 @@ const styles = StyleSheet.create({
   layout: { width: '90%', alignItems: 'center' },
   cameraButton: { marginVertical: 20, padding: 15, backgroundColor: '#007AFF', borderRadius: 10, width: '80%', alignItems: 'center' },
   cameraButtonText: { color: '#fff', fontSize: 16 },
+  permissionButton: { marginVertical: 20, padding: 15, backgroundColor: '#FF3B30', borderRadius: 10, width: '80%', alignItems: 'center' },
+  permissionText: { color: '#fff', fontSize: 16 },
   input: { borderWidth: 1, borderColor: '#ccc', padding: 10, width: '100%', marginVertical: 10, borderRadius: 5 },
   locationButton: { backgroundColor: '#f0f0f0', padding: 10, width: '100%', marginVertical: 10, alignItems: 'center', borderRadius: 5 },
   locationText: { fontSize: 14 },
