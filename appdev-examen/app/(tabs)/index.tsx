@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Image, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import * as FileSystem from 'expo-file-system';
@@ -165,7 +165,10 @@ export default function App() {
       {!isCameraOpen ? (
         <View style={styles.layout}>
           <TouchableOpacity style={styles.cameraButton} onPress={openCamera}>
-            <Text style={styles.cameraButtonText}>Camera openen</Text>
+          <Image
+            source={require("../../assets/images/camera.png")}
+            style={styles.cameraImage}
+          />
           </TouchableOpacity>
           <TextInput
             style={styles.input}
@@ -208,8 +211,8 @@ export default function App() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
   layout: { width: '90%', alignItems: 'center' },
-  cameraButton: { marginVertical: 20, padding: 15, backgroundColor: '#007AFF', borderRadius: 10, width: '80%', alignItems: 'center' },
-  cameraButtonText: { color: '#fff', fontSize: 16 },
+  cameraButton: { marginVertical: 20, padding: 15, backgroundColor: 'none', borderRadius: 10, width: '80%', alignItems: 'center' },
+  cameraImage: {width: 150, height: 150, },
   permissionButton: { marginVertical: 20, padding: 15, backgroundColor: '#FF3B30', borderRadius: 10, width: '80%', alignItems: 'center' },
   permissionText: { color: '#fff', fontSize: 16 },
   input: { borderWidth: 1, borderColor: '#ccc', padding: 10, width: '100%', marginVertical: 10, borderRadius: 5 },
