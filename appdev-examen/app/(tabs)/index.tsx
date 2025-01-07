@@ -1,21 +1,42 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Image, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import {
+  View,
+  Image,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Dimensions,
+} from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
+import { Dropdown } from 'react-native-element-dropdown';
 
 export default function App() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [technicianName, setTechnicianName] = useState(''); // New state for technician's name
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<string | null>(null);
   const [category, setCategory] = useState('Grondkabels');
-  const cameraRef = useRef<CameraView | null>(null);
+  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>(
+    Dimensions.get('window').width < Dimensions.get('window').height ? 'portrait' : 'landscape'
+  );
 
+  const cameraRef = useRef<CameraView | null>(null);
   const PHOTO_FOLDER = `${FileSystem.documentDirectory}MyAppPhotos`;
+
+  const categories = [
+    { label: 'Grondkabels', value: 'Grondkabels' },
+    { label: 'Luchtkabels', value: 'Luchtkabels' },
+    { label: 'Waterleidingen', value: 'Waterleidingen' },
+    { label: 'Gasleidingen', value: 'Gasleidingen' },
+  ];
 
   useEffect(() => {
     const createPhotoFolder = async () => {
@@ -26,6 +47,16 @@ export default function App() {
     };
 
     createPhotoFolder();
+
+    const handleOrientationChange = () => {
+      const newOrientation =
+        Dimensions.get('window').width < Dimensions.get('window').height ? 'portrait' : 'landscape';
+      setOrientation(newOrientation);
+    };
+
+    Dimensions.addEventListener('change', handleOrientationChange);
+
+    return () => Dimensions.removeEventListener('change', handleOrientationChange);
   }, []);
 
   if (!cameraPermission) {
@@ -59,6 +90,7 @@ export default function App() {
   const savePhotoAndMetadata = async (photoUri: string) => {
     const metadata = {
       photoUri,
+      technicianName,
       description,
       location,
       category,
@@ -92,25 +124,23 @@ export default function App() {
         return;
       }
 
-      // Sort photo files by timestamp (extract timestamp from filename)
       const sortedPhotoFiles = photoFiles.sort((a, b) => {
-        const timeA = parseInt(a.split('_')[1].split('.')[0]); // Extract timestamp from filename
-        const timeB = parseInt(b.split('_')[1].split('.')[0]); // Extract timestamp from filename
-        return timeB - timeA; // Sort descending (latest photo first)
+        const timeA = parseInt(a.split('_')[1].split('.')[0]);
+        const timeB = parseInt(b.split('_')[1].split('.')[0]);
+        return timeB - timeA;
       });
 
       const latestPhotoFile = sortedPhotoFiles[0];
       const photoPath = `${PHOTO_FOLDER}/${latestPhotoFile}`;
 
-      // Convert the photo to Base64
       const base64Image = await FileSystem.readAsStringAsync(photoPath, { encoding: FileSystem.EncodingType.Base64 });
       const photoBase64URI = `data:image/jpeg;base64,${base64Image}`;
 
-      // Generate the PDF content
       const html = `
         <html>
           <body>
             <h1>Foto Metadata</h1>
+            <p><strong>Monteur:</strong> ${technicianName || 'N.V.T.'}</p>
             <p><strong>Beschrijving:</strong> ${description || 'N.V.T.'}</p>
             <p><strong>Locatie:</strong> ${location || 'N.V.T.'}</p>
             <p><strong>Categorie:</strong> ${category || 'N.V.T.'}</p>
@@ -121,7 +151,6 @@ export default function App() {
         </html>
       `;
 
-      // Generate the PDF
       const { uri } = await Print.printToFileAsync({ html });
       const pdfPath = `${PHOTO_FOLDER}/metadata_${Date.now()}.pdf`;
       await FileSystem.moveAsync({
@@ -129,7 +158,6 @@ export default function App() {
         to: pdfPath,
       });
 
-      // Share the PDF
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(pdfPath);
       } else {
@@ -160,16 +188,21 @@ export default function App() {
     }
   };
 
+  const isPortrait = orientation === 'portrait';
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isPortrait ? styles.portraitLayout : styles.landscapeLayout]}>
       {!isCameraOpen ? (
         <View style={styles.layout}>
           <TouchableOpacity style={styles.cameraButton} onPress={openCamera}>
-          <Image
-            source={require("../../assets/images/camera.png")}
-            style={styles.cameraImage}
-          />
+            <Image source={require("../../assets/images/camera.png")} style={styles.cameraImage} />
           </TouchableOpacity>
+          <TextInput
+            style={styles.input}
+            placeholder="Naam"
+            value={technicianName}
+            onChangeText={setTechnicianName}
+          />
           <TextInput
             style={styles.input}
             placeholder="Voer beschrijving in"
@@ -181,11 +214,14 @@ export default function App() {
           </TouchableOpacity>
           <View style={styles.categoryMenu}>
             <Text style={styles.categoryLabel}>Categorie:</Text>
-            <TextInput
-              style={styles.categoryInput}
+            <Dropdown
+              data={categories}
+              labelField="label"
+              valueField="value"
               value={category}
-              onChangeText={setCategory}
               placeholder="Selecteer een categorie"
+              onChange={(item) => setCategory(item.value)}
+              style={styles.dropdown}
             />
           </View>
           <TouchableOpacity style={styles.saveButton} onPress={generateAndSharePDF}>
@@ -210,9 +246,11 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+  portraitLayout: { flexDirection: 'column' },
+  landscapeLayout: { flexDirection: 'row', alignItems: 'flex-start' },
   layout: { width: '90%', alignItems: 'center' },
   cameraButton: { marginVertical: 20, padding: 15, backgroundColor: 'none', borderRadius: 10, width: '80%', alignItems: 'center' },
-  cameraImage: {width: 150, height: 150, },
+  cameraImage: { width: 150, height: 150 },
   permissionButton: { marginVertical: 20, padding: 15, backgroundColor: '#FF3B30', borderRadius: 10, width: '80%', alignItems: 'center' },
   permissionText: { color: '#fff', fontSize: 16 },
   input: { borderWidth: 1, borderColor: '#ccc', padding: 10, width: '100%', marginVertical: 10, borderRadius: 5 },
@@ -220,7 +258,7 @@ const styles = StyleSheet.create({
   locationText: { fontSize: 14 },
   categoryMenu: { width: '100%', marginVertical: 10 },
   categoryLabel: { fontSize: 14, marginBottom: 5 },
-  categoryInput: { borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 5 },
+  dropdown: { height: 40, backgroundColor: '#f0f0f0', borderRadius: 5, paddingHorizontal: 10 },
   saveButton: { backgroundColor: '#007AFF', padding: 15, borderRadius: 10, marginVertical: 10, alignItems: 'center' },
   camera: { flex: 1, width: '100%' },
   cameraControls: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
