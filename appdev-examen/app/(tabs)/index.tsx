@@ -20,7 +20,7 @@ export default function App() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [technicianName, setTechnicianName] = useState(''); // New state for technician's name
+  const [technicianName, setTechnicianName] = useState(''); 
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<string | null>(null);
   const [category, setCategory] = useState('Grondkabels');
@@ -47,16 +47,6 @@ export default function App() {
     };
 
     createPhotoFolder();
-
-    const handleOrientationChange = () => {
-      const newOrientation =
-        Dimensions.get('window').width < Dimensions.get('window').height ? 'portrait' : 'landscape';
-      setOrientation(newOrientation);
-    };
-
-    Dimensions.addEventListener('change', handleOrientationChange);
-
-    return () => Dimensions.removeEventListener('change', handleOrientationChange);
   }, []);
 
   if (!cameraPermission) {
@@ -200,12 +190,14 @@ export default function App() {
           <TextInput
             style={styles.input}
             placeholder="Naam"
+            placeholderTextColor="#B0B0B0"
             value={technicianName}
             onChangeText={setTechnicianName}
           />
           <TextInput
             style={styles.input}
             placeholder="Voer beschrijving in"
+            placeholderTextColor="#B0B0B0"
             value={description}
             onChangeText={setDescription}
           />
@@ -225,7 +217,7 @@ export default function App() {
             />
           </View>
           <TouchableOpacity style={styles.saveButton} onPress={generateAndSharePDF}>
-            <Text style={styles.buttonText}>PDF genereren en delen</Text>
+            <Text style={styles.buttonText}>Opslaan en delen (pdf)</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -264,4 +256,6 @@ const styles = StyleSheet.create({
   cameraControls: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
   photoButton: { backgroundColor: '#007AFF', padding: 20, borderRadius: 50, marginBottom: 20 },
   closeButton: { backgroundColor: '#FF3B30', padding: 15, borderRadius: 10, marginBottom: 20 },
+  buttonText: {backgroundColor: '#00000000', color: 'white'
+  },
 });
