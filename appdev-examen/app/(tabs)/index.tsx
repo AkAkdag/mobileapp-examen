@@ -97,7 +97,7 @@ export default function App() {
       const metadataFilename = `${PHOTO_FOLDER}/metadata_${Date.now()}.json`;
       await FileSystem.writeAsStringAsync(metadataFilename, JSON.stringify(metadata));
 
-      Alert.alert('Lokaal opgeslagen!', `Foto en metadata opgeslagen in ${PHOTO_FOLDER}`);
+      Alert.alert('De foto is tijdelijk opgeslagen!', `Vergeet niet op ‘Opslaan en delen’ te drukken als je deze wilt bewaren.`);
     } catch (error) {
       console.error('Fout bij het opslaan van foto en metadata:', error);
       Alert.alert('Fout', 'Kon de foto en metadata niet opslaan.');
