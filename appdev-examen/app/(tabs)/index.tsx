@@ -20,7 +20,7 @@ export default function App() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [technicianName, setTechnicianName] = useState(''); 
+  const [technicianName, setTechnicianName] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<string | null>(null);
   const [category, setCategory] = useState('Grondkabels');
@@ -78,13 +78,16 @@ export default function App() {
   };
 
   const savePhotoAndMetadata = async (photoUri: string) => {
+    const today = new Date();
+    const formattedDate = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+
     const metadata = {
       photoUri,
       technicianName,
       description,
       location,
       category,
-      timestamp: new Date().toISOString(),
+      timestamp: formattedDate,
     };
 
     try {
@@ -126,30 +129,75 @@ export default function App() {
       const base64Image = await FileSystem.readAsStringAsync(photoPath, { encoding: FileSystem.EncodingType.Base64 });
       const photoBase64URI = `data:image/jpeg;base64,${base64Image}`;
 
+      const today = new Date();
+      const formattedDate = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+
       const html = `
-        <html>
-          <body>
-            <h1>Foto Metadata</h1>
-            <p><strong>Monteur:</strong> ${technicianName || 'N.V.T.'}</p>
-            <p><strong>Beschrijving:</strong> ${description || 'N.V.T.'}</p>
-            <p><strong>Locatie:</strong> ${location || 'N.V.T.'}</p>
-            <p><strong>Categorie:</strong> ${category || 'N.V.T.'}</p>
-            <p><strong>Tijdstip:</strong> ${new Date().toISOString()}</p>
-            <h2>Foto:</h2>
-            <img src="${photoBase64URI}" style="width: 100%; max-width: 400px; height: auto;" />
-          </body>
-        </html>
-      `;
+      <html>
+        <head>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            .container {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              margin: 20px;
+            }
+            .info {
+              margin-bottom: 20px;
+              text-align: left;
+              width: 100%;
+            }
+            .info p {
+              margin: 5px 0;
+            }
+            .photo {
+              text-align: left;
+              width: 100%;
+            }
+            .photo img {
+              width: auto; 
+              max-width: 100%; 
+              max-height: 730px; 
+              display: block;
+              margin: auto;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="info">
+              <p><strong>Monteur:</strong> ${technicianName || 'N.V.T.'}</p>
+              <p><strong>Beschrijving:</strong> ${description || 'N.V.T.'}</p>
+              <p><strong>Locatie:</strong> ${location || 'N.V.T.'}</p>
+              <p><strong>Categorie:</strong> ${category || 'N.V.T.'}</p>
+              <p><strong>Datum:</strong> ${formattedDate}</p>
+            </div>
+            <div class="photo">
+              <h2>Foto:</h2>
+              <img src="${photoBase64URI}" />
+            </div>
+          </div>
+        </body>
+      </html>`;
+
+      const pdfFilename = `${PHOTO_FOLDER}/${technicianName}_${category}_${formattedDate}.pdf`;
 
       const { uri } = await Print.printToFileAsync({ html });
-      const pdfPath = `${PHOTO_FOLDER}/metadata_${Date.now()}.pdf`;
+
       await FileSystem.moveAsync({
         from: uri,
-        to: pdfPath,
+        to: pdfFilename,
       });
 
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(pdfPath);
+        await Sharing.shareAsync(pdfFilename);
       } else {
         Alert.alert('Delen niet beschikbaar', 'Het delen van bestanden is niet beschikbaar op dit apparaat.');
       }
@@ -256,6 +304,5 @@ const styles = StyleSheet.create({
   cameraControls: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
   photoButton: { backgroundColor: '#007AFF', padding: 20, borderRadius: 50, marginBottom: 20 },
   closeButton: { backgroundColor: '#FF3B30', padding: 15, borderRadius: 10, marginBottom: 20 },
-  buttonText: {backgroundColor: '#00000000', color: 'white'
-  },
+  buttonText: { color: 'white' },
 });
