@@ -1,6 +1,6 @@
 **Energie4You App**
 
-Energie4You is een mobiele app waarmee technici eenvoudig foto’s kunnen maken van installaties, GPS-locaties kunnen vastleggen en alles kunnen exporteren naar een PDF-bestand.
+Energie4You is een mobiele app waarmee monteurs eenvoudig foto’s kunnen maken van installaties, GPS-locaties kunnen vastleggen en alles kunnen exporteren naar een PDF-bestand.
 
 **Installatie**
 
