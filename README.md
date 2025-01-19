@@ -5,7 +5,7 @@ Energie4You is een mobiele app waarmee monteurs eenvoudig foto’s kunnen maken 
 **Installatie**
 
 **_Vereisten_**	
-  •	Node.js geïnstalleerd.
+  	•	Node.js geïnstalleerd.
 	•	Expo: Installeer met npm install expo
 	•	Expo Go App: Beschikbaar op Android en iOS.
 
