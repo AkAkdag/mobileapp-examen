@@ -16,7 +16,7 @@ import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 import { Dropdown } from 'react-native-element-dropdown';
 
-export default function App() {
+export default function energie4YouApp() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -29,7 +29,7 @@ export default function App() {
   );
 
   const cameraRef = useRef<CameraView | null>(null);
-  const PHOTO_FOLDER = `${FileSystem.documentDirectory}MyAppPhotos`;
+  const photoFolder = `${FileSystem.documentDirectory}MyAppPhotos`;
 
   const categories = [
     { label: 'Grondkabels', value: 'Grondkabels' },
@@ -40,9 +40,9 @@ export default function App() {
 
   useEffect(() => {
     const createPhotoFolder = async () => {
-      const folderInfo = await FileSystem.getInfoAsync(PHOTO_FOLDER);
+      const folderInfo = await FileSystem.getInfoAsync(photoFolder);
       if (!folderInfo.exists) {
-        await FileSystem.makeDirectoryAsync(PHOTO_FOLDER, { intermediates: true });
+        await FileSystem.makeDirectoryAsync(photoFolder, { intermediates: true });
       }
     };
 
@@ -91,13 +91,13 @@ export default function App() {
     };
 
     try {
-      const photoFilename = `${PHOTO_FOLDER}/photo_${Date.now()}.jpg`;
+      const photoFilename = `${photoFolder}/photo_${Date.now()}.jpg`;
       await FileSystem.moveAsync({
         from: photoUri,
         to: photoFilename,
       });
 
-      const metadataFilename = `${PHOTO_FOLDER}/metadata_${Date.now()}.json`;
+      const metadataFilename = `${photoFolder}/metadata_${Date.now()}.json`;
       await FileSystem.writeAsStringAsync(metadataFilename, JSON.stringify(metadata));
 
       Alert.alert('De foto is tijdelijk opgeslagen!', `Vergeet niet op ‘Opslaan en delen’ te drukken als je deze wilt bewaren.`);
@@ -109,7 +109,7 @@ export default function App() {
 
   const generateAndSharePDF = async () => {
     try {
-      const files = await FileSystem.readDirectoryAsync(PHOTO_FOLDER);
+      const files = await FileSystem.readDirectoryAsync(photoFolder);
       const photoFiles = files.filter((file) => file.startsWith('photo_') && file.endsWith('.jpg'));
 
       if (photoFiles.length === 0) {
@@ -124,7 +124,7 @@ export default function App() {
       });
 
       const latestPhotoFile = sortedPhotoFiles[0];
-      const photoPath = `${PHOTO_FOLDER}/${latestPhotoFile}`;
+      const photoPath = `${photoFolder}/${latestPhotoFile}`;
 
       const base64Image = await FileSystem.readAsStringAsync(photoPath, { encoding: FileSystem.EncodingType.Base64 });
       const photoBase64URI = `data:image/jpeg;base64,${base64Image}`;
@@ -187,7 +187,7 @@ export default function App() {
         </body>
       </html>`;
 
-      const pdfFilename = `${PHOTO_FOLDER}/${technicianName}_${category}_${formattedDate}.pdf`;
+      const pdfFilename = `${photoFolder}/${technicianName}_${category}_${formattedDate}.pdf`;
 
       const { uri } = await Print.printToFileAsync({ html });
 
@@ -229,7 +229,12 @@ export default function App() {
   const isPortrait = orientation === 'portrait';
 
   return (
-    <View style={[styles.container, isPortrait ? styles.portraitLayout : styles.landscapeLayout]}>
+    <View style={[styles.container]}>
+          <View  style={styles.logoDiv}>
+          <Image source={require("../../assets/images/energie4you.png")} style={styles.logo} />
+
+          </View>
+
       {!isCameraOpen ? (
         <View style={styles.layout}>
           <TouchableOpacity style={styles.cameraButton} onPress={openCamera}>
@@ -285,9 +290,9 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  portraitLayout: { flexDirection: 'column' },
-  landscapeLayout: { flexDirection: 'row', alignItems: 'flex-start' },
+  container: { flex: 1, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center' },
+  logoDiv: { position: 'absolute', top: 45, left: 20, zIndex: 10, width: 85, height: 50, borderBottomColor: 'red', borderWidth: 1,  borderTopColor: 'blue', borderTopEndRadius: 20, borderBottomLeftRadius: 20},
+  logo: { width: '100%', height: '100%', resizeMode: 'contain'},
   layout: { width: '90%', alignItems: 'center' },
   cameraButton: { marginVertical: 20, padding: 15, backgroundColor: 'none', borderRadius: 10, width: '80%', alignItems: 'center' },
   cameraImage: { width: 150, height: 150 },
