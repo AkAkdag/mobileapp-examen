@@ -24,9 +24,7 @@ export default function energie4YouApp() {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<string | null>(null);
   const [category, setCategory] = useState('Grondkabels');
-  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>(
-    Dimensions.get('window').width < Dimensions.get('window').height ? 'portrait' : 'landscape'
-  );
+
 
   const cameraRef = useRef<CameraView | null>(null);
   const photoFolder = `${FileSystem.documentDirectory}MyAppPhotos`;
@@ -226,7 +224,6 @@ export default function energie4YouApp() {
     }
   };
 
-  const isPortrait = orientation === 'portrait';
 
   return (
     <View style={[styles.container]}>
